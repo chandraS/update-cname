@@ -63,7 +63,14 @@ def add_www_record(domain_id, cname_target):
 def read_domains_from_csv(csv_file_path):
     with open(csv_file_path, mode='r') as file:
         csv_reader = csv.reader(file)
-        return {row[0].strip().lower() for row in csv_reader}
+        domains = set()
+        for row in csv_reader:
+            domain = row[0].strip().lower()
+            if domain.startswith('www.'):
+                domain = domain[4:]  # Removes the 'www.' prefix
+            domains.add(domain)
+        return domains
+
 
 def main(csv_file_path):
     domain_names = read_domains_from_csv(csv_file_path)
