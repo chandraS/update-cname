@@ -29,26 +29,26 @@ def fetch_linode_domains():
 
 def handle_www_record(domain_id):
     headers = {"Authorization": f"Bearer {LINODE_TOKEN}"}
+    # Fetch existing DNS records for the domain
     response = requests.get(f"{LINODE_API_URL}/{domain_id}/records", headers=headers)
     
     if response.ok:
         records = response.json()['data']
         for record in records:
-            if record['name'] == 'www':
-                if record['type'] == 'A':
-                    delete_response = requests.delete(f"{LINODE_API_URL}/{domain_id}/records/{record['id']}", headers=headers)
-                    if delete_response.ok:
-                        print(f"Deleted 'www' A record for domain ID: {domain_id}")
-                    else:
-                        print(f"Failed to delete 'www' A record for domain ID: {domain_id}. Status Code: {delete_response.status_code}")
-                # Whether it was an A record that got deleted or not, we proceed to add/update the CNAME
-                add_www_cname_record(domain_id, "champion1.edgesuite.net")
-                return
-
-        # If no www record was found, we simply add the CNAME
+            # Check for an existing "www" record (both A and CNAME types)
+            if record['name'] == 'www' and (record['type'] == 'A' or record['type'] == 'CNAME'):
+                # Delete the existing "www" record
+                delete_response = requests.delete(f"{LINODE_API_URL}/{domain_id}/records/{record['id']}", headers=headers)
+                if delete_response.ok:
+                    print(f"Deleted 'www' {record['type']} record for domain ID: {domain_id}")
+                else:
+                    print(f"Failed to delete 'www' {record['type']} record for domain ID: {domain_id}. Status Code: {delete_response.status_code}")
+        
+        # After deleting any existing "www" record, add the new "www" CNAME record
         add_www_cname_record(domain_id, "champion1.edgesuite.net")
     else:
         print(f"Failed to fetch DNS records for domain ID: {domain_id}. Status Code: {response.status_code}")
+
 
 def add_www_cname_record(domain_id, cname_target):
     headers = {
